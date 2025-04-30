@@ -1,12 +1,204 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Navbar from "@/components/Navbar";
+import InvoiceForm from "@/components/InvoiceForm";
+import InvoiceList from "@/components/InvoiceList";
+import MessageTemplates from "@/components/MessageTemplates";
+import MessageHistory from "@/components/MessageHistory";
+import Dashboard from "@/components/Dashboard";
+import { Invoice, Message } from "@/types";
+import { whatsapp } from "lucide-react";
+
+// Default template messages
+const DEFAULT_REMINDER_TEMPLATE = 
+`Olá {{nome}}, 
+
+Esperamos que esteja bem! Este é apenas um lembrete amigável de que você possui uma fatura no valor de {{valor}} com vencimento em {{vencimento}}.
+
+Para sua comodidade, você pode efetuar o pagamento através do link abaixo:
+{{link}}
+
+Caso já tenha efetuado o pagamento, por favor desconsidere esta mensagem.
+
+Atenciosamente,
+Equipe WhatZPay`;
+
+const DEFAULT_OVERDUE_TEMPLATE = 
+`Olá {{nome}},
+
+Notamos que sua fatura no valor de {{valor}} venceu há {{diasAtraso}} dia(s), em {{vencimento}}, e consta como pendente em nosso sistema.
+
+Para regularizar sua situação, por favor efetue o pagamento através do link abaixo:
+{{link}}
+
+Caso já tenha efetuado o pagamento, por favor nos informe para atualizarmos seu status.
+
+Atenciosamente,
+Equipe WhatZPay`;
 
 const Index = () => {
+  // State management for application data
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageTemplates, setMessageTemplates] = useState({
+    reminder: DEFAULT_REMINDER_TEMPLATE,
+    overdue: DEFAULT_OVERDUE_TEMPLATE
+  });
+  const [activeTab, setActiveTab] = useState("dashboard");
+  
+  // Load data from localStorage on mount
+  useEffect(() => {
+    const savedInvoices = localStorage.getItem('whatzpay-invoices');
+    const savedMessages = localStorage.getItem('whatzpay-messages');
+    const savedTemplates = localStorage.getItem('whatzpay-templates');
+    
+    if (savedInvoices) {
+      try {
+        setInvoices(JSON.parse(savedInvoices));
+      } catch (e) {
+        console.error("Failed to parse saved invoices");
+      }
+    }
+    
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (e) {
+        console.error("Failed to parse saved messages");
+      }
+    }
+    
+    if (savedTemplates) {
+      try {
+        setMessageTemplates(JSON.parse(savedTemplates));
+      } catch (e) {
+        console.error("Failed to parse saved templates");
+        // Use defaults if parsing fails
+      }
+    }
+  }, []);
+  
+  // Save data to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('whatzpay-invoices', JSON.stringify(invoices));
+  }, [invoices]);
+  
+  useEffect(() => {
+    localStorage.setItem('whatzpay-messages', JSON.stringify(messages));
+  }, [messages]);
+  
+  useEffect(() => {
+    localStorage.setItem('whatzpay-templates', JSON.stringify(messageTemplates));
+  }, [messageTemplates]);
+  
+  // Handlers for updating data
+  const handleAddInvoice = (invoice: Invoice) => {
+    setInvoices(prev => [...prev, invoice]);
+  };
+  
+  const handleUpdateInvoice = (updatedInvoice: Invoice) => {
+    setInvoices(prev => prev.map(invoice => 
+      invoice.id === updatedInvoice.id ? updatedInvoice : invoice
+    ));
+  };
+  
+  const handleAddMessage = (message: Message) => {
+    setMessages(prev => [...prev, message]);
+  };
+  
+  const handleUpdateTemplates = (templates: { reminder: string; overdue: string }) => {
+    setMessageTemplates(templates);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-1 container mx-auto py-8 px-4">
+        {invoices.length === 0 && messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[70vh]">
+            <div className="bg-white p-5 rounded-full mb-6 shadow-md">
+              <whatsapp className="h-16 w-16 text-whatsapp" />
+            </div>
+            <h1 className="text-4xl font-bold mb-2 text-center">Bem-vindo ao WhatZPay</h1>
+            <p className="text-xl text-muted-foreground mb-8 text-center max-w-lg">
+              Sistema de alertas e cobranças automáticas via WhatsApp
+            </p>
+            <Tabs defaultValue="invoices" className="w-full max-w-3xl">
+              <TabsContent value="invoices">
+                <InvoiceForm onAddInvoice={handleAddInvoice} />
+              </TabsContent>
+            </Tabs>
+            <div className="mt-8 text-center">
+              <p className="text-muted-foreground text-sm">
+                Comece cadastrando suas primeiras faturas para enviar alertas de pagamento automáticos.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="mb-6">
+              <TabsList>
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                <TabsTrigger value="invoices">Faturas</TabsTrigger>
+                <TabsTrigger value="templates">Templates</TabsTrigger>
+                <TabsTrigger value="messages">Histórico</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="dashboard" className="space-y-6">
+              <Dashboard 
+                invoices={invoices} 
+                messages={messages} 
+                messageTemplates={messageTemplates}
+                onAddMessage={handleAddMessage}
+              />
+            </TabsContent>
+            
+            <TabsContent value="invoices" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1">
+                  <InvoiceForm onAddInvoice={handleAddInvoice} />
+                </div>
+                <div className="md:col-span-2">
+                  <InvoiceList 
+                    invoices={invoices} 
+                    onUpdateInvoice={handleUpdateInvoice} 
+                    onAddMessage={handleAddMessage}
+                    messageTemplates={messageTemplates}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="templates">
+              <MessageTemplates 
+                templates={messageTemplates} 
+                onUpdateTemplates={handleUpdateTemplates} 
+              />
+            </TabsContent>
+            
+            <TabsContent value="messages">
+              <MessageHistory messages={messages} />
+            </TabsContent>
+          </Tabs>
+        )}
+      </main>
+      
+      <footer className="py-4 px-4 border-t">
+        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between text-sm text-muted-foreground">
+          <div className="mb-2 md:mb-0">
+            WhatZPay - Sistema de Alertas e Cobranças via WhatsApp
+          </div>
+          <div className="flex items-center">
+            <span>Desenvolvido com</span>
+            <span className="text-red-500 mx-1">♥</span>
+            <span>por Lovable</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
