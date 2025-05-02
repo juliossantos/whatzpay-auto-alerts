@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import InvoiceForm from "@/components/InvoiceForm";
 import InvoiceList from "@/components/InvoiceList";
+import InvoiceImport from "@/components/InvoiceImport";
 import MessageTemplates from "@/components/MessageTemplates";
 import MessageHistory from "@/components/MessageHistory";
 import Dashboard from "@/components/Dashboard";
 import { Invoice, Message } from "@/types";
-import { whatsapp } from "lucide-react";
+import { Send } from "lucide-react";
 
 // Default template messages
 const DEFAULT_REMINDER_TEMPLATE = 
@@ -97,6 +98,10 @@ const Index = () => {
   const handleAddInvoice = (invoice: Invoice) => {
     setInvoices(prev => [...prev, invoice]);
   };
+
+  const handleAddInvoices = (newInvoices: Invoice[]) => {
+    setInvoices(prev => [...prev, ...newInvoices]);
+  };
   
   const handleUpdateInvoice = (updatedInvoice: Invoice) => {
     setInvoices(prev => prev.map(invoice => 
@@ -120,15 +125,22 @@ const Index = () => {
         {invoices.length === 0 && messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[70vh]">
             <div className="bg-white p-5 rounded-full mb-6 shadow-md">
-              <whatsapp className="h-16 w-16 text-whatsapp" />
+              <Send className="h-16 w-16 text-blue-500" />
             </div>
             <h1 className="text-4xl font-bold mb-2 text-center">Bem-vindo ao WhatZPay</h1>
             <p className="text-xl text-muted-foreground mb-8 text-center max-w-lg">
               Sistema de alertas e cobranças automáticas via WhatsApp
             </p>
             <Tabs defaultValue="invoices" className="w-full max-w-3xl">
+              <TabsList>
+                <TabsTrigger value="invoices">Cadastro Manual</TabsTrigger>
+                <TabsTrigger value="import">Importação XLS</TabsTrigger>
+              </TabsList>
               <TabsContent value="invoices">
                 <InvoiceForm onAddInvoice={handleAddInvoice} />
+              </TabsContent>
+              <TabsContent value="import">
+                <InvoiceImport onAddInvoices={handleAddInvoices} existingInvoices={invoices} />
               </TabsContent>
             </Tabs>
             <div className="mt-8 text-center">
@@ -158,17 +170,28 @@ const Index = () => {
             </TabsContent>
             
             <TabsContent value="invoices" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1">
-                  <InvoiceForm onAddInvoice={handleAddInvoice} />
-                </div>
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-8 lg:col-span-9">
                   <InvoiceList 
                     invoices={invoices} 
                     onUpdateInvoice={handleUpdateInvoice} 
                     onAddMessage={handleAddMessage}
                     messageTemplates={messageTemplates}
                   />
+                </div>
+                <div className="md:col-span-4 lg:col-span-3">
+                  <Tabs defaultValue="manual" className="w-full">
+                    <TabsList className="w-full grid grid-cols-2">
+                      <TabsTrigger value="manual">Manual</TabsTrigger>
+                      <TabsTrigger value="import">Importar</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="manual">
+                      <InvoiceForm onAddInvoice={handleAddInvoice} />
+                    </TabsContent>
+                    <TabsContent value="import">
+                      <InvoiceImport onAddInvoices={handleAddInvoices} existingInvoices={invoices} />
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             </TabsContent>

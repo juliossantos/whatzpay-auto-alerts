@@ -21,6 +21,7 @@ import {
   sendWhatsAppMessage 
 } from "@/utils/wppConnectApi";
 import { v4 as uuidv4 } from "uuid";
+import { Calendar, Send } from "lucide-react";
 
 interface DashboardProps {
   invoices: Invoice[];
@@ -41,6 +42,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [includePrevious, setIncludePrevious] = useState(true);
 
   // Dashboard stats
   const totalInvoices = invoices.length;
@@ -52,6 +54,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   const sentMessages = messages.filter(message => message.deliveryStatus === 'sent' || message.deliveryStatus === 'delivered' || message.deliveryStatus === 'read').length;
   const failedMessages = messages.filter(message => message.deliveryStatus === 'failed').length;
   
+  // Função para verificar se deve enviar lembrete no dia anterior (4 dias antes)
+  const shouldSendReminderPrevious = (dueDate: string): boolean => {
+    const daysUntilDue = getDaysUntilDue(dueDate);
+    return daysUntilDue === 4; // 4 dias antes do vencimento
+  };
+  
+  // Função para verificar se deve enviar cobrança no dia anterior (2 dias após)
+  const shouldSendOverduePrevious = (dueDate: string): boolean => {
+    const daysOverdue = getDaysOverdue(dueDate);
+    return daysOverdue === 2; // 2 dias após o vencimento
+  };
+  
   // Upcoming invoices for reminders (3 days before due date)
   const upcomingInvoices = invoices.filter(invoice => 
     !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminder(invoice.dueDate)
@@ -61,17 +75,31 @@ const Dashboard: React.FC<DashboardProps> = ({
   const recentlyOverdueInvoices = invoices.filter(invoice => 
     !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverdue(invoice.dueDate)
   );
+  
+  // Invoices from the previous day (4 days before due date)
+  const previousReminderInvoices = invoices.filter(invoice => 
+    !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminderPrevious(invoice.dueDate)
+  );
+  
+  // Invoices from the previous day (2 days after due date)
+  const previousOverdueInvoices = invoices.filter(invoice => 
+    !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverduePrevious(invoice.dueDate)
+  );
 
   // Automated processing of messages
   const processAutomatedMessages = async () => {
     if (isProcessing) return;
     
-    const invoicesToProcess = [...upcomingInvoices, ...recentlyOverdueInvoices];
+    let invoicesToProcess = [...upcomingInvoices, ...recentlyOverdueInvoices];
+    
+    if (includePrevious) {
+      invoicesToProcess = [...invoicesToProcess, ...previousReminderInvoices, ...previousOverdueInvoices];
+    }
     
     if (invoicesToProcess.length === 0) {
       toast({
         title: "Nenhuma mensagem para enviar",
-        description: "Não existem faturas para enviar lembretes ou cobranças hoje."
+        description: "Não existem faturas para enviar lembretes ou cobranças agora."
       });
       return;
     }
@@ -84,7 +112,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     
     for (const invoice of invoicesToProcess) {
       try {
-        const isReminder = upcomingInvoices.includes(invoice);
+        const isReminder = upcomingInvoices.includes(invoice) || previousReminderInvoices.includes(invoice);
         const messageType = isReminder ? 'reminder' : 'overdue';
         
         // Select template based on message type
@@ -136,6 +164,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     setIsProcessing(false);
     setProgress(100);
   };
+
+  const totalPendingMessages = upcomingInvoices.length + recentlyOverdueInvoices.length + 
+    (includePrevious ? previousReminderInvoices.length + previousOverdueInvoices.length : 0);
 
   return (
     <div className="space-y-4">
@@ -190,24 +221,40 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center">
                 <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 mr-1">
-                  {upcomingInvoices.length}
+                  {upcomingInvoices.length + (includePrevious ? previousReminderInvoices.length : 0)}
                 </Badge>
-                <span className="text-xs text-muted-foreground">Lembretes Hoje</span>
+                <span className="text-xs text-muted-foreground">Lembretes</span>
               </div>
               <div className="flex items-center">
                 <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 mr-1">
-                  {recentlyOverdueInvoices.length}
+                  {recentlyOverdueInvoices.length + (includePrevious ? previousOverdueInvoices.length : 0)}
                 </Badge>
-                <span className="text-xs text-muted-foreground">Cobranças Hoje</span>
+                <span className="text-xs text-muted-foreground">Cobranças</span>
               </div>
             </div>
+            
+            <div className="flex items-center gap-2 mb-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includePrevious}
+                  onChange={(e) => setIncludePrevious(e.target.checked)}
+                  className="rounded border-gray-300 text-primary"
+                />
+                Incluir dia anterior
+              </label>
+              <span className="text-xs text-muted-foreground">({previousReminderInvoices.length + previousOverdueInvoices.length})</span>
+            </div>
+            
             <Button 
-              onClick={processAutomatedMessages} 
-              disabled={isProcessing || (upcomingInvoices.length === 0 && recentlyOverdueInvoices.length === 0)}
-              className="w-full mt-2"
+              onClick={processAutomatedMessages}
+              disabled={isProcessing || totalPendingMessages === 0}
+              className="w-full mt-0 flex items-center gap-2"
             >
-              {isProcessing ? "Processando..." : "Enviar Mensagens Automáticas"}
+              <Send size={16} />
+              {isProcessing ? "Processando..." : `Enviar ${totalPendingMessages} Mensagens`}
             </Button>
+            
             {isProcessing && (
               <Progress value={progress} className="mt-2" />
             )}
@@ -217,26 +264,26 @@ const Dashboard: React.FC<DashboardProps> = ({
       
       <Card>
         <CardHeader>
-          <CardTitle>Mensagens Pendentes de Hoje</CardTitle>
+          <CardTitle>Mensagens Pendentes</CardTitle>
           <CardDescription>
-            Faturas que necessitam envio de lembretes ou cobranças automatizadas hoje.
+            Faturas que necessitam envio de lembretes ou cobranças automatizadas.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="reminders">
             <TabsList className="mb-4">
               <TabsTrigger value="reminders">
-                Lembretes ({upcomingInvoices.length})
+                Lembretes ({upcomingInvoices.length + (includePrevious ? previousReminderInvoices.length : 0)})
               </TabsTrigger>
               <TabsTrigger value="collections">
-                Cobranças ({recentlyOverdueInvoices.length})
+                Cobranças ({recentlyOverdueInvoices.length + (includePrevious ? previousOverdueInvoices.length : 0)})
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="reminders">
-              {upcomingInvoices.length === 0 ? (
+              {upcomingInvoices.length === 0 && (!includePrevious || previousReminderInvoices.length === 0) ? (
                 <div className="text-center py-6">
-                  <p className="text-muted-foreground">Não há lembretes para enviar hoje.</p>
+                  <p className="text-muted-foreground">Não há lembretes para enviar.</p>
                 </div>
               ) : (
                 <div className="rounded-md border">
@@ -244,14 +291,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <TableHeader>
                       <TableRow>
                         <TableHead>Cliente</TableHead>
+                        <TableHead>N° Pedido/NF</TableHead>
                         <TableHead>Valor</TableHead>
                         <TableHead>Vencimento</TableHead>
+                        <TableHead>Quando</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {upcomingInvoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                          <TableCell>{invoice.orderNumber || "-"}</TableCell>
                           <TableCell>
                             {new Intl.NumberFormat('pt-BR', {
                               style: 'currency',
@@ -259,6 +309,30 @@ const Dashboard: React.FC<DashboardProps> = ({
                             }).format(invoice.amount)}
                           </TableCell>
                           <TableCell>{formatDate(invoice.dueDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              Hoje
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      
+                      {includePrevious && previousReminderInvoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                          <TableCell>{invoice.orderNumber || "-"}</TableCell>
+                          <TableCell>
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(invoice.amount)}
+                          </TableCell>
+                          <TableCell>{formatDate(invoice.dueDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              Dia Anterior
+                            </Badge>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -268,9 +342,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             </TabsContent>
             
             <TabsContent value="collections">
-              {recentlyOverdueInvoices.length === 0 ? (
+              {recentlyOverdueInvoices.length === 0 && (!includePrevious || previousOverdueInvoices.length === 0) ? (
                 <div className="text-center py-6">
-                  <p className="text-muted-foreground">Não há cobranças para enviar hoje.</p>
+                  <p className="text-muted-foreground">Não há cobranças para enviar.</p>
                 </div>
               ) : (
                 <div className="rounded-md border">
@@ -278,15 +352,18 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <TableHeader>
                       <TableRow>
                         <TableHead>Cliente</TableHead>
+                        <TableHead>N° Pedido/NF</TableHead>
                         <TableHead>Valor</TableHead>
                         <TableHead>Vencimento</TableHead>
                         <TableHead>Dias em Atraso</TableHead>
+                        <TableHead>Quando</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {recentlyOverdueInvoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                          <TableCell>{invoice.orderNumber || "-"}</TableCell>
                           <TableCell>
                             {new Intl.NumberFormat('pt-BR', {
                               style: 'currency',
@@ -295,6 +372,31 @@ const Dashboard: React.FC<DashboardProps> = ({
                           </TableCell>
                           <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                           <TableCell>{getDaysOverdue(invoice.dueDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              Hoje
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      
+                      {includePrevious && previousOverdueInvoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                          <TableCell>{invoice.orderNumber || "-"}</TableCell>
+                          <TableCell>
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(invoice.amount)}
+                          </TableCell>
+                          <TableCell>{formatDate(invoice.dueDate)}</TableCell>
+                          <TableCell>{getDaysOverdue(invoice.dueDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              Dia Anterior
+                            </Badge>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

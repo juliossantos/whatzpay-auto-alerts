@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { whatsapp } from "lucide-react";
+import { Send } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
@@ -19,7 +19,7 @@ const NotFound = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="text-center p-8 bg-white rounded-lg shadow-md max-w-md w-full">
         <div className="mx-auto bg-blue-50 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-          <whatsapp className="h-8 w-8 text-whatsapp" />
+          <Send className="h-8 w-8 text-blue-500" />
         </div>
         <h1 className="text-4xl font-bold mb-2">404</h1>
         <p className="text-xl text-gray-600 mb-6">Página não encontrada</p>

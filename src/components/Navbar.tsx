@@ -1,89 +1,65 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { whatsapp } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Link } from "react-router-dom";
+import { Send } from "lucide-react";
 
 const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const [open, setOpen] = useState(false);
+
   return (
-    <nav className="bg-primary text-primary-foreground shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="bg-white rounded-full p-1.5">
-                <whatsapp className="h-6 w-6 text-whatsapp" />
-              </div>
-              <span className="text-xl font-bold">WhatZPay</span>
-            </Link>
-          </div>
-          
-          {/* Desktop navigation */}
-          <div className="hidden md:flex md:items-center">
-            <div className="ml-4 flex items-center space-x-2">
-              <Link to="/">
-                <Button variant="ghost">Dashboard</Button>
-              </Link>
-              <Link to="/invoices">
-                <Button variant="ghost">Faturas</Button>
-              </Link>
-              <Link to="/templates">
-                <Button variant="ghost">Templates</Button>
-              </Link>
-              <Link to="/messages">
-                <Button variant="ghost">Histórico</Button>
-              </Link>
+    <header className="border-b bg-white">
+      <div className="container mx-auto flex h-16 items-center px-4 sm:px-6">
+        <div className="flex items-center">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="bg-blue-100 p-1 rounded-full">
+              <Send className="h-6 w-6 text-blue-500" />
             </div>
-          </div>
-          
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md focus:outline-none"
-            >
-              <svg
-                className="h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-                />
-              </svg>
-            </button>
-          </div>
+            <span className="text-xl font-bold">WhatZPay</span>
+          </Link>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm">
+                Sobre
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Sobre o WhatZPay</SheetTitle>
+              </SheetHeader>
+              <div className="py-4">
+                <p className="mb-4">
+                  WhatZPay é um sistema de alertas e cobranças automáticas via WhatsApp.
+                </p>
+                <p className="mb-4">
+                  O sistema permite o envio de lembretes antes do vencimento de faturas
+                  e cobranças após o vencimento, tudo de forma automatizada e personalizada.
+                </p>
+                <h3 className="font-bold mt-6 mb-2">Principais funcionalidades:</h3>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Cadastro manual e importação de faturas via Excel</li>
+                  <li>Envio automatizado de lembretes e cobranças</li>
+                  <li>Detecção automática de pagamentos</li>
+                  <li>Personalização completa de mensagens</li>
+                  <li>Histórico de mensagens enviadas</li>
+                </ul>
+              </div>
+              <div className="mt-auto pt-4">
+                <Button
+                  className="w-full"
+                  onClick={() => setOpen(false)}
+                >
+                  Fechar
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
-      
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary-700">
-              Dashboard
-            </Link>
-            <Link to="/invoices" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary-700">
-              Faturas
-            </Link>
-            <Link to="/templates" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary-700">
-              Templates
-            </Link>
-            <Link to="/messages" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-primary-700">
-              Histórico
-            </Link>
-          </div>
-        </div>
-      )}
-    </nav>
+    </header>
   );
 };
 

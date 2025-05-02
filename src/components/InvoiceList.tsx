@@ -155,11 +155,13 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
             <p className="text-muted-foreground">Nenhuma fatura cadastrada.</p>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Cód. Cliente</TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>N° Pedido/NF</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Status</TableHead>
@@ -169,7 +171,9 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
               <TableBody>
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
+                    <TableCell>{invoice.customerCode || "-"}</TableCell>
                     <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                    <TableCell>{invoice.orderNumber || "-"}</TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',

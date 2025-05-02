@@ -16,10 +16,12 @@ interface InvoiceFormProps {
 const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
   const { toast } = useToast();
   const [customerName, setCustomerName] = useState("");
+  const [customerCode, setCustomerCode] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [paymentLink, setPaymentLink] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatWhatsAppNumber = (input: string) => {
@@ -53,11 +55,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
     const newInvoice: Invoice = {
       id: uuidv4(),
       customerName,
+      customerCode: customerCode || undefined,
       whatsappNumber: formattedNumber,
       amount: parseFloat(amount),
       dueDate,
       isPaid: false,
       paymentLink: paymentLink || undefined,
+      orderNumber: orderNumber || undefined,
       createdAt: getCurrentDateISOString(),
     };
     
@@ -67,10 +71,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
       
       // Reset form
       setCustomerName("");
+      setCustomerCode("");
       setWhatsappNumber("");
       setAmount("");
       setDueDate("");
       setPaymentLink("");
+      setOrderNumber("");
       
       toast({
         title: "Fatura cadastrada",
@@ -91,15 +97,27 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="customerName">Nome do Cliente *</Label>
-            <Input
-              id="customerName"
-              placeholder="Nome completo"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerCode">Código do Cliente</Label>
+              <Input
+                id="customerCode"
+                placeholder="Código ou ID"
+                value={customerCode}
+                onChange={(e) => setCustomerCode(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="customerName">Nome do Cliente *</Label>
+              <Input
+                id="customerName"
+                placeholder="Nome completo"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                required
+              />
+            </div>
           </div>
           
           <div className="space-y-2">
@@ -118,6 +136,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="orderNumber">N° Pedido/NF</Label>
+              <Input
+                id="orderNumber"
+                placeholder="Número do pedido ou nota fiscal"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
               <Label htmlFor="amount">Valor (R$) *</Label>
               <Input
                 id="amount"
@@ -130,7 +158,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
                 required
               />
             </div>
-            
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dueDate">Data de Vencimento *</Label>
               <Input
@@ -141,21 +171,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
                 required
               />
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="paymentLink">Link para Pagamento</Label>
-            <Input
-              id="paymentLink"
-              type="url"
-              placeholder="https://"
-              value={paymentLink}
-              onChange={(e) => setPaymentLink(e.target.value)}
-            />
+            
+            <div className="space-y-2">
+              <Label htmlFor="paymentLink">Link para Pagamento</Label>
+              <Input
+                id="paymentLink"
+                type="url"
+                placeholder="https://"
+                value={paymentLink}
+                onChange={(e) => setPaymentLink(e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? "Cadastrando..." : "Cadastrar Fatura"}
           </Button>
         </CardFooter>

@@ -2,11 +2,13 @@
 export interface Invoice {
   id: string;
   customerName: string;
+  customerCode?: string;
   whatsappNumber: string;
   amount: number;
   dueDate: string;
   isPaid: boolean;
   paymentLink?: string;
+  orderNumber?: string;
   createdAt: string;
 }
 
