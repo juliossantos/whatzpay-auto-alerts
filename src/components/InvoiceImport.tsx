@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import * as XLSX from "xlsx";
-import { Invoice } from "@/types";
+import { Invoice, ImportResult } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { getCurrentDateISOString } from "@/utils/dateUtils";
 import { Import } from "lucide-react";
@@ -24,6 +24,8 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
   const [error, setError] = useState<string | null>(null);
   const [processedRows, setProcessedRows] = useState(0);
   const [totalRows, setTotalRows] = useState(0);
+  const [skippedInvoices, setSkippedInvoices] = useState<ImportResult["skippedInvoices"]>([]);
+  const [showSkipped, setShowSkipped] = useState(false);
 
   const formatWhatsAppNumber = (input: string) => {
     if (!input) return "";
@@ -39,6 +41,13 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
     return digitsOnly;
   };
 
+  const isDuplicateInvoice = (orderNumber: string | undefined): boolean => {
+    if (!orderNumber) return false;
+    return existingInvoices.some(invoice => 
+      invoice.orderNumber === orderNumber && !invoice.isPaid
+    );
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -46,6 +55,8 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
     setIsImporting(true);
     setError(null);
     setProgress(0);
+    setSkippedInvoices([]);
+    setShowSkipped(false);
     
     try {
       const data = await file.arrayBuffer();
@@ -74,6 +85,7 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
       
       // Process data and create invoices
       const newInvoices: Invoice[] = [];
+      const skippedRows: ImportResult["skippedInvoices"] = [];
       const importedOrderNumbers = new Set<string>();
       let processed = 0;
       
@@ -153,6 +165,20 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
           continue;
         }
 
+        // Check if this invoice already exists (has the same order number and is not paid)
+        if (orderNumber && isDuplicateInvoice(orderNumber)) {
+          // Skip this invoice but log it
+          skippedRows.push({
+            customerName,
+            orderNumber,
+            amount
+          });
+          processed++;
+          setProcessedRows(processed);
+          setProgress(Math.floor((processed / jsonData.length) * 100));
+          continue;
+        }
+
         // Add order number to tracking set
         if (orderNumber) {
           importedOrderNumbers.add(orderNumber);
@@ -213,17 +239,39 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
         }
       }
       
-      if (newInvoices.length === 0) {
+      if (newInvoices.length === 0 && skippedRows.length === 0) {
         throw new Error("Nenhuma fatura válida foi encontrada na planilha.");
       }
       
-      // Add the new invoices
-      onAddInvoices(newInvoices);
+      // Store skipped invoices for display
+      if (skippedRows.length > 0) {
+        setSkippedInvoices(skippedRows);
+        setShowSkipped(true);
+      }
       
-      toast({
-        title: "Importação concluída",
-        description: `${newInvoices.length} faturas foram importadas com sucesso.`
-      });
+      // Add the new invoices
+      if (newInvoices.length > 0) {
+        onAddInvoices(newInvoices);
+      }
+      
+      // Show appropriate toast based on results
+      if (newInvoices.length > 0 && skippedRows.length > 0) {
+        toast({
+          title: "Importação concluída",
+          description: `${newInvoices.length} faturas importadas. ${skippedRows.length} faturas foram ignoradas por já existirem.`
+        });
+      } else if (newInvoices.length > 0) {
+        toast({
+          title: "Importação concluída",
+          description: `${newInvoices.length} faturas foram importadas com sucesso.`
+        });
+      } else if (skippedRows.length > 0) {
+        toast({
+          title: "Nenhuma fatura importada",
+          description: `Todas as ${skippedRows.length} faturas já existem no sistema.`,
+          variant: "destructive"
+        });
+      }
       
       // Reset the file input
       e.target.value = '';
@@ -283,6 +331,36 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
               <span>{processedRows} de {totalRows} registros</span>
             </div>
             <Progress value={progress} />
+          </div>
+        )}
+
+        {showSkipped && skippedInvoices.length > 0 && (
+          <div className="mt-4 border rounded-md p-3">
+            <h4 className="text-sm font-medium mb-2">
+              Faturas ignoradas ({skippedInvoices.length})
+            </h4>
+            <div className="max-h-40 overflow-y-auto text-xs">
+              <table className="w-full">
+                <thead className="font-medium">
+                  <tr>
+                    <th className="text-left py-1">Cliente</th>
+                    <th className="text-left py-1">Nº Pedido/NF</th>
+                    <th className="text-right py-1">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {skippedInvoices.map((invoice, index) => (
+                    <tr key={index} className="border-t">
+                      <td className="py-1">{invoice.customerName}</td>
+                      <td className="py-1">{invoice.orderNumber || 'N/A'}</td>
+                      <td className="py-1 text-right">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(invoice.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </CardContent>

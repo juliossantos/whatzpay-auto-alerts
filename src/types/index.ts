@@ -36,3 +36,13 @@ export interface WPPConnectResponse {
   messageId?: string;
   error?: string;
 }
+
+export interface ImportResult {
+  imported: number;
+  skipped: number;
+  skippedInvoices: {
+    customerName: string;
+    orderNumber?: string;
+    amount: number;
+  }[];
+}
