@@ -1,17 +1,25 @@
 
-import { format, addDays, isAfter, differenceInDays, parseISO } from 'date-fns';
+import { format, addDays, isAfter, differenceInDays } from 'date-fns';
+
+// Função auxiliar para criar uma data sem problemas de timezone
+const createSafeDate = (dateString: string): Date => {
+  // Extrair a data no formato YYYY-MM-DD
+  const parts = dateString.split('T')[0].split('-');
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]) - 1; // Meses em JavaScript são 0-11
+  const day = parseInt(parts[2]);
+  
+  // Criar a data usando UTC para evitar problemas de timezone
+  return new Date(Date.UTC(year, month, day, 12, 0, 0));
+};
 
 export const formatDate = (dateString: string): string => {
-  // Create a date object and set time to noon to avoid timezone issues
-  const date = new Date(dateString);
-  date.setHours(12, 0, 0, 0);
+  const date = createSafeDate(dateString);
   return format(date, 'dd/MM/yyyy');
 };
 
 export const formatDatetime = (dateString: string): string => {
-  // Create a date object and set time to noon to avoid timezone issues
-  const date = new Date(dateString);
-  date.setHours(12, 0, 0, 0);
+  const date = createSafeDate(dateString);
   return format(date, 'dd/MM/yyyy HH:mm');
 };
 
@@ -19,9 +27,7 @@ export const isOverdue = (dueDate: string): boolean => {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   
-  // Parse the date and set time to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(12, 0, 0, 0);
+  const dueDateObj = createSafeDate(dueDate);
   
   return isAfter(today, dueDateObj);
 };
@@ -30,9 +36,7 @@ export const getDaysUntilDue = (dueDate: string): number => {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   
-  // Parse the date and set time to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(12, 0, 0, 0);
+  const dueDateObj = createSafeDate(dueDate);
   
   return differenceInDays(dueDateObj, today);
 };
@@ -41,17 +45,13 @@ export const getDaysOverdue = (dueDate: string): number => {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   
-  // Parse the date and set time to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(12, 0, 0, 0);
+  const dueDateObj = createSafeDate(dueDate);
   
   return differenceInDays(today, dueDateObj);
 };
 
 export const getDateForReminder = (dueDate: string): string => {
-  // Parse the date and set time to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(12, 0, 0, 0);
+  const dueDateObj = createSafeDate(dueDate);
   const reminderDate = addDays(dueDateObj, -3);
   return format(reminderDate, 'yyyy-MM-dd');
 };
@@ -60,11 +60,8 @@ export const shouldSendReminder = (dueDate: string): boolean => {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   
-  // Parse the date and set time to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(12, 0, 0, 0);
+  const dueDateObj = createSafeDate(dueDate);
   const reminderDate = addDays(dueDateObj, -3);
-  reminderDate.setHours(12, 0, 0, 0);
   
   // Compare just the date parts
   return today.toDateString() === reminderDate.toDateString();
@@ -74,11 +71,8 @@ export const shouldSendOverdue = (dueDate: string): boolean => {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   
-  // Parse the date and set time to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(12, 0, 0, 0);
+  const dueDateObj = createSafeDate(dueDate);
   const overdueDate = addDays(dueDateObj, 1);
-  overdueDate.setHours(12, 0, 0, 0);
   
   // Compare just the date parts
   return today.toDateString() === overdueDate.toDateString();
@@ -86,6 +80,11 @@ export const shouldSendOverdue = (dueDate: string): boolean => {
 
 export const getCurrentDateISOString = (): string => {
   const now = new Date();
-  now.setHours(12, 0, 0, 0);
-  return now.toISOString();
+  
+  // Formato YYYY-MM-DD para garantir consistência
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T12:00:00.000Z`;
 };
