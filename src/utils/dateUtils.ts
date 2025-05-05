@@ -13,8 +13,8 @@ export const isOverdue = (dueDate: string): boolean => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Create date with time set to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate + 'T12:00:00');
+  // Parse the date without adding/subtracting days to preserve the exact date
+  const dueDateObj = parseISO(dueDate);
   dueDateObj.setHours(0, 0, 0, 0);
   
   return isAfter(today, dueDateObj);
@@ -24,8 +24,8 @@ export const getDaysUntilDue = (dueDate: string): number => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Create date with time set to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate + 'T12:00:00');
+  // Parse the date without adding/subtracting days to preserve the exact date
+  const dueDateObj = parseISO(dueDate);
   dueDateObj.setHours(0, 0, 0, 0);
   
   return differenceInDays(dueDateObj, today);
@@ -35,16 +35,16 @@ export const getDaysOverdue = (dueDate: string): number => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Create date with time set to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate + 'T12:00:00');
+  // Parse the date without adding/subtracting days to preserve the exact date
+  const dueDateObj = parseISO(dueDate);
   dueDateObj.setHours(0, 0, 0, 0);
   
   return differenceInDays(today, dueDateObj);
 };
 
 export const getDateForReminder = (dueDate: string): string => {
-  // Create date with time set to noon to avoid timezone issues
-  const dueDateObj = new Date(dueDate + 'T12:00:00');
+  // Parse the date without adding/subtracting days to preserve the exact date
+  const dueDateObj = parseISO(dueDate);
   const reminderDate = addDays(dueDateObj, -3);
   return format(reminderDate, 'yyyy-MM-dd');
 };
@@ -53,7 +53,6 @@ export const shouldSendReminder = (dueDate: string): boolean => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Create date with time set to noon to avoid timezone issues
   const dueDateObj = parseISO(dueDate);
   const reminderDate = addDays(dueDateObj, -3);
   reminderDate.setHours(0, 0, 0, 0);
@@ -65,7 +64,6 @@ export const shouldSendOverdue = (dueDate: string): boolean => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Create date with time set to noon to avoid timezone issues
   const dueDateObj = parseISO(dueDate);
   const overdueDate = addDays(dueDateObj, 1);
   overdueDate.setHours(0, 0, 0, 0);
@@ -76,4 +74,3 @@ export const shouldSendOverdue = (dueDate: string): boolean => {
 export const getCurrentDateISOString = (): string => {
   return new Date().toISOString();
 };
-

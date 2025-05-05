@@ -5,9 +5,14 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Invoice } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { getCurrentDateISOString } from "@/utils/dateUtils";
+import { cn } from "@/lib/utils";
 
 interface InvoiceFormProps {
   onAddInvoice: (invoice: Invoice) => void;
@@ -20,6 +25,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [date, setDate] = useState<Date | undefined>(undefined);
   const [paymentLink, setPaymentLink] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +40,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
     }
     
     return digitsOnly;
+  };
+
+  // Handle date selection from the calendar
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      // Format the date as YYYY-MM-DD for the dueDate field
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      setDueDate(formattedDate);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -75,6 +91,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
       setWhatsappNumber("");
       setAmount("");
       setDueDate("");
+      setDate(undefined);
       setPaymentLink("");
       setOrderNumber("");
       
@@ -163,11 +180,34 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dueDate">Data de Vencimento *</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full pl-3 text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                    id="dueDate"
+                  >
+                    {date ? format(date, "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <input 
+                type="hidden" 
+                name="dueDate" 
+                value={dueDate} 
                 required
               />
             </div>
