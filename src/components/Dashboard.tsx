@@ -13,7 +13,8 @@ import {
   getDaysOverdue,
   shouldSendReminder,
   shouldSendOverdue,
-  getCurrentDateISOString
+  getCurrentDateISOString,
+  getDaysUntilDue
 } from "@/utils/dateUtils";
 import { 
   formatMessageWithVariables, 
