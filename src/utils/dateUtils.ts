@@ -56,26 +56,28 @@ export const getDateForReminder = (dueDate: string): string => {
   return format(reminderDate, 'yyyy-MM-dd');
 };
 
+// Função corrigida para verificar lembretes 3 dias antes do vencimento
 export const shouldSendReminder = (dueDate: string): boolean => {
   const today = new Date();
-  today.setHours(12, 0, 0, 0);
+  today.setHours(0, 0, 0, 0); // Início do dia
   
   const dueDateObj = createSafeDate(dueDate);
-  const reminderDate = addDays(dueDateObj, -3);
+  const daysUntilDue = getDaysUntilDue(dueDate);
   
-  // Compare just the date parts
-  return today.toDateString() === reminderDate.toDateString();
+  // Verificar se faltam exatamente 3 dias para o vencimento
+  return daysUntilDue === 3;
 };
 
+// Função corrigida para verificar cobranças 1 dia após o vencimento
 export const shouldSendOverdue = (dueDate: string): boolean => {
   const today = new Date();
-  today.setHours(12, 0, 0, 0);
+  today.setHours(0, 0, 0, 0); // Início do dia
   
   const dueDateObj = createSafeDate(dueDate);
-  const overdueDate = addDays(dueDateObj, 1);
+  const daysOverdue = getDaysOverdue(dueDate);
   
-  // Compare just the date parts
-  return today.toDateString() === overdueDate.toDateString();
+  // Verificar se está exatamente 1 dia em atraso
+  return daysOverdue === 1;
 };
 
 export const getCurrentDateISOString = (): string => {
