@@ -196,6 +196,7 @@ const InvoiceImport: React.FC<InvoiceImportProps> = ({ onAddInvoices, existingIn
           paymentLink: paymentLink || undefined,
           orderNumber: orderNumber || undefined,
           createdAt: getCurrentDateISOString(),
+          contactMethod: 'whatsapp', // Default for imports
         };
         
         newInvoices.push(invoice);

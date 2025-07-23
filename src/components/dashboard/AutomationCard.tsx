@@ -44,22 +44,26 @@ const AutomationCard: React.FC<AutomationCardProps> = ({
   
   // Upcoming invoices for reminders (3 days before due date)
   const upcomingInvoices = invoices.filter(invoice => 
-    !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminder(invoice.dueDate)
+    !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminder(invoice.dueDate) &&
+    (invoice.whatsappNumber || invoice.email)
   );
   
   // Recently overdue invoices (1 day after due date)
   const recentlyOverdueInvoices = invoices.filter(invoice => 
-    !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverdue(invoice.dueDate)
+    !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverdue(invoice.dueDate) &&
+    (invoice.whatsappNumber || invoice.email)
   );
   
   // Invoices from the previous day (4 days before due date)
   const previousReminderInvoices = invoices.filter(invoice => 
-    !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminderPrevious(invoice.dueDate)
+    !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminderPrevious(invoice.dueDate) &&
+    (invoice.whatsappNumber || invoice.email)
   );
   
   // Invoices from the previous day (2 days after due date)
   const previousOverdueInvoices = invoices.filter(invoice => 
-    !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverduePrevious(invoice.dueDate)
+    !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverduePrevious(invoice.dueDate) &&
+    (invoice.whatsappNumber || invoice.email)
   );
 
   const totalPendingMessages = upcomingInvoices.length + recentlyOverdueInvoices.length + 
@@ -69,6 +73,7 @@ const AutomationCard: React.FC<AutomationCardProps> = ({
     <Card className="relative">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Automação</CardTitle>
+        <p className="text-xs text-muted-foreground">WhatsApp & Email</p>
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center mb-2">

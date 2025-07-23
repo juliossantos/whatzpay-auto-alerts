@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatDate, isOverdue, getDaysUntilDue, getDaysOverdue } from "@/utils/dateUtils";
 import { Invoice, Message } from "@/types";
 import { formatMessageWithVariables, getMessageVariables, sendWhatsAppMessage } from "@/utils/wppConnectApi";
+import { sendEmail, formatEmailWithVariables, getEmailSubject } from "@/utils/emailApi";
 import { getCurrentDateISOString } from "@/utils/dateUtils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -65,21 +66,31 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
       );
       
       // Format message with variables
-      const messageContent = formatMessageWithVariables(templateContent, variables);
+      const messageContent = invoice.contactMethod === 'email' 
+        ? formatEmailWithVariables(templateContent, variables)
+        : formatMessageWithVariables(templateContent, variables);
       
-      // Send message using the API
-      const response = await sendWhatsAppMessage(invoice.whatsappNumber, messageContent);
+      // Send message using the appropriate API
+      const response = invoice.contactMethod === 'email' 
+        ? await sendEmail(
+            invoice.email!, 
+            getEmailSubject(messageType, invoice.customerName),
+            messageContent
+          )
+        : await sendWhatsAppMessage(invoice.whatsappNumber!, messageContent);
       
       // Record the message in history
       const message: Message = {
         id: uuidv4(),
         invoiceId: invoice.id,
         customerName: invoice.customerName,
-        whatsappNumber: invoice.whatsappNumber,
+        whatsappNumber: invoice.contactMethod === 'whatsapp' ? invoice.whatsappNumber : undefined,
+        email: invoice.contactMethod === 'email' ? invoice.email : undefined,
         content: messageContent,
         sentAt: getCurrentDateISOString(),
         deliveryStatus: response.success ? 'sent' : 'failed',
         messageType: 'manual',
+        contactMethod: invoice.contactMethod,
       };
       
       onAddMessage(message);
@@ -161,6 +172,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                 <TableRow>
                   <TableHead>Cód. Cliente</TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Contato</TableHead>
                   <TableHead>N° Pedido/NF</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
@@ -173,6 +185,16 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                   <TableRow key={invoice.id}>
                     <TableCell>{invoice.customerCode || "-"}</TableCell>
                     <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium">
+                          {invoice.contactMethod === 'whatsapp' ? 'WhatsApp' : 'Email'}
+                        </span>
+                        <span className="text-sm">
+                          {invoice.contactMethod === 'whatsapp' ? invoice.whatsappNumber : invoice.email}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>{invoice.orderNumber || "-"}</TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', {
@@ -184,7 +206,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                     <TableCell>{getStatusBadge(invoice)}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        {!invoice.isPaid && (
+                        {!invoice.isPaid && (invoice.whatsappNumber || invoice.email) && (
                           <>
                             <Button
                               variant="outline"

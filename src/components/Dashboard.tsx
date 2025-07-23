@@ -13,6 +13,11 @@ import {
   getMessageVariables, 
   sendWhatsAppMessage 
 } from "@/utils/wppConnectApi";
+import { 
+  sendEmail, 
+  formatEmailWithVariables, 
+  getEmailSubject 
+} from "@/utils/emailApi";
 import { v4 as uuidv4 } from "uuid";
 
 // Import the refactored components
@@ -55,22 +60,26 @@ const Dashboard: React.FC<DashboardProps> = ({
   const filterInvoicesForAutomation = () => {
     // Upcoming invoices for reminders (3 days before due date)
     const upcomingInvoices = invoices.filter(invoice => 
-      !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminder(invoice.dueDate)
+      !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminder(invoice.dueDate) &&
+      (invoice.whatsappNumber || invoice.email)
     );
     
     // Recently overdue invoices (1 day after due date)
     const recentlyOverdueInvoices = invoices.filter(invoice => 
-      !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverdue(invoice.dueDate)
+      !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverdue(invoice.dueDate) &&
+      (invoice.whatsappNumber || invoice.email)
     );
     
     // Invoices from the previous day (4 days before due date)
     const previousReminderInvoices = invoices.filter(invoice => 
-      !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminderPrevious(invoice.dueDate)
+      !invoice.isPaid && !isOverdue(invoice.dueDate) && shouldSendReminderPrevious(invoice.dueDate) &&
+      (invoice.whatsappNumber || invoice.email)
     );
     
     // Invoices from the previous day (2 days after due date)
     const previousOverdueInvoices = invoices.filter(invoice => 
-      !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverduePrevious(invoice.dueDate)
+      !invoice.isPaid && isOverdue(invoice.dueDate) && shouldSendOverduePrevious(invoice.dueDate) &&
+      (invoice.whatsappNumber || invoice.email)
     );
 
     let invoicesToProcess = [...upcomingInvoices, ...recentlyOverdueInvoices];
@@ -119,21 +128,31 @@ const Dashboard: React.FC<DashboardProps> = ({
         );
         
         // Format message with variables
-        const messageContent = formatMessageWithVariables(templateContent, variables);
+        const messageContent = invoice.contactMethod === 'email' 
+          ? formatEmailWithVariables(templateContent, variables)
+          : formatMessageWithVariables(templateContent, variables);
         
-        // Send message using the API
-        const response = await sendWhatsAppMessage(invoice.whatsappNumber, messageContent);
+        // Send message using the appropriate API
+        const response = invoice.contactMethod === 'email' 
+          ? await sendEmail(
+              invoice.email!, 
+              getEmailSubject(messageType, invoice.customerName),
+              messageContent
+            )
+          : await sendWhatsAppMessage(invoice.whatsappNumber!, messageContent);
         
         // Record the message in history
         const message: Message = {
           id: uuidv4(),
           invoiceId: invoice.id,
           customerName: invoice.customerName,
-          whatsappNumber: invoice.whatsappNumber,
+          whatsappNumber: invoice.contactMethod === 'whatsapp' ? invoice.whatsappNumber : undefined,
+          email: invoice.contactMethod === 'email' ? invoice.email : undefined,
           content: messageContent,
           sentAt: getCurrentDateISOString(),
           deliveryStatus: response.success ? 'sent' : 'failed',
           messageType: isReminder ? 'reminder' : 'overdue',
+          contactMethod: invoice.contactMethod,
         };
         
         onAddMessage(message);

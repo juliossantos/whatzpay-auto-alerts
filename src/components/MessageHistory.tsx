@@ -48,7 +48,8 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
     .filter(message => statusFilter === 'all' || message.deliveryStatus === statusFilter)
     .filter(message => 
       message.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      message.whatsappNumber.includes(searchTerm)
+      (message.whatsappNumber && message.whatsappNumber.includes(searchTerm)) ||
+      (message.email && message.email.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
 
@@ -57,14 +58,14 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
       <CardHeader>
         <CardTitle>Histórico de Mensagens</CardTitle>
         <CardDescription>
-          Histórico de mensagens enviadas pelo WhatsApp.
+          Histórico de mensagens enviadas via WhatsApp e email.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <Input
-              placeholder="Buscar por nome ou número..."
+              placeholder="Buscar por nome, número ou email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -88,6 +89,7 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Contato</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Enviado em</TableHead>
                   <TableHead>Status</TableHead>
@@ -97,6 +99,16 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
                 {filteredMessages.map((message) => (
                   <TableRow key={message.id} className="group cursor-pointer" title="Clique para visualizar a mensagem">
                     <TableCell className="font-medium">{message.customerName}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium">
+                          {message.contactMethod === 'whatsapp' ? 'WhatsApp' : 'Email'}
+                        </span>
+                        <span className="text-sm">
+                          {message.contactMethod === 'whatsapp' ? message.whatsappNumber : message.email}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>{getMessageTypeBadge(message.messageType)}</TableCell>
                     <TableCell>{formatDatetime(message.sentAt)}</TableCell>
                     <TableCell>{getStatusBadge(message.deliveryStatus)}</TableCell>

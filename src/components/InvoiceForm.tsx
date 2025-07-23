@@ -23,6 +23,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
   const [customerName, setCustomerName] = useState("");
   const [customerCode, setCustomerCode] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [contactMethod, setContactMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
@@ -55,7 +57,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerName || !whatsappNumber || !amount || !dueDate) {
+    const contactInfo = contactMethod === 'whatsapp' ? whatsappNumber : email;
+    if (!customerName || !contactInfo || !amount || !dueDate) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -72,13 +75,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
       id: uuidv4(),
       customerName,
       customerCode: customerCode || undefined,
-      whatsappNumber: formattedNumber,
+      whatsappNumber: contactMethod === 'whatsapp' ? formatWhatsAppNumber(whatsappNumber) : undefined,
+      email: contactMethod === 'email' ? email : undefined,
       amount: parseFloat(amount),
       dueDate,
       isPaid: false,
       paymentLink: paymentLink || undefined,
       orderNumber: orderNumber || undefined,
       createdAt: getCurrentDateISOString(),
+      contactMethod,
     };
     
     // Simulate network delay
@@ -89,6 +94,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
       setCustomerName("");
       setCustomerCode("");
       setWhatsappNumber("");
+      setEmail("");
       setAmount("");
       setDueDate("");
       setDate(undefined);
@@ -109,7 +115,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
       <CardHeader>
         <CardTitle>Nova Fatura</CardTitle>
         <CardDescription>
-          Cadastre uma nova fatura para envio de alertas pelo WhatsApp.
+          Cadastre uma nova fatura para envio de alertas por WhatsApp ou email.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -137,18 +143,60 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onAddInvoice }) => {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="whatsappNumber">Número de WhatsApp *</Label>
-            <Input
-              id="whatsappNumber"
-              placeholder="Ex: 5511999999999"
-              value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Formato: 55 + DDD + número
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Método de Contato *</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    value="whatsapp" 
+                    checked={contactMethod === 'whatsapp'}
+                    onChange={(e) => setContactMethod(e.target.value as 'whatsapp')}
+                    className="text-primary"
+                  />
+                  <span>WhatsApp</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    value="email" 
+                    checked={contactMethod === 'email'}
+                    onChange={(e) => setContactMethod(e.target.value as 'email')}
+                    className="text-primary"
+                  />
+                  <span>Email</span>
+                </label>
+              </div>
+            </div>
+            
+            {contactMethod === 'whatsapp' ? (
+              <div className="space-y-2">
+                <Label htmlFor="whatsappNumber">Número de WhatsApp *</Label>
+                <Input
+                  id="whatsappNumber"
+                  placeholder="Ex: 5511999999999"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  required={contactMethod === 'whatsapp'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Formato: 55 + DDD + número
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="cliente@exemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required={contactMethod === 'email'}
+                />
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
